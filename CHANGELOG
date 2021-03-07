@@ -1,0 +1,76 @@
+2.0.0 -> 2.0.1
+Fixing small bug in tokenizers library integration
+Updating documentation
+
+1.2 -> 2.0.0
+Adding mangoes.modeling, interface into Huggingface transformers library
+    - BERT task classes for feature extraction, pretraining, and fine tuning
+    - Training helper classes, such as torch.Dataset subclasses, transformers.Trainer subclasses
+    - Tokenizer training
+    - BERT co-reference resolution implementation in torch
+
+1.1.1 -> 1.2
+Drop support of python3.5
+Cythonize counting
+
+1.1 -> 1.1.1
+Fix incompatibility with scipy 1.x+
+
+1.0.1 -> 1.1
+New contexts : Sentence, DependencyBaseContext
+New metrics to compute distance between words
+New Composition module
+Word Mover Distance to compute distance between phrases, sentences, documents, ...
+Corpus:
+    - new parameter to ignore punctuation
+    - new methods peek() and describe()
+Support for bigrams
+Add function `merge` in `counting` module to merge CountBasedRepresentations
+Improve working with Tokens
+Move evaluate module to new evaluation package
+Refactoring of the `count_cooccurrence` method to improve performances
+
+1.0.0 -> 1.0.1
+Fix incompatibility with gensim 3
+
+1.0.0-RC6 -> 1.0.0-RC7
+Doc updated
+Available on pyPI
+
+1.0.0-RC5 -> 1.0.0-RC6
+Support python 3.6
+Import main modules in root (no need multiple imports anymore)
+Makes gensim optional
+
+1.0.0-RC4 -> 1.0.0-RC5
+Rename project and modules
+
+1.0.0-RC3 -> 1.0.0-RC4
+
+Refactorization of the base classes and main function `create` :
+    - move the `embeddings` module to a `base` module and import content in root (renaming `magnet.embeddings.create()`
+    to `magnet.create_representation()`)
+    - rename CooccurrenceCount to CountBasedRepresentation to generalize it and generalize the representation that
+    can be used as source in the create_representation()` function
+Replace the use of partial functions with callable classes to define contexts and transformations
+Persist parameters when saving Vocabulary, Embeddings and CountBasedRepresentation
+Add parameter language to Corpus and a french word-similarity dataset
+Fix a bug when loading a Corpus from previously saved metadata pickle file
+
+
+1.0.0-RC2 -> 1.0.0-RC3
+
+Refactor dataset and evaluate modules
+Implements Outlier Detection task in evaluate module and add datasets
+Make matplotlib optional
+
+1.0.0-RC1 -> 1.0.0-RC2
+
+Refactor context module
+Update word2vec wrapper
+Rename *_nb params to nb_* to be more consistent (fix #68)
+Fix problems with paths
+Update documentation
+Move demo and notebooks data files
+
+

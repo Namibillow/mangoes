@@ -1,0 +1,12 @@
+build/
+demo/data/
+demo/output/
+*.egg*
+examples/output/
+mangoes/__pycache__/
+mangoes/evaluation/__pycache__/
+mangoes/modeling/__pycache__/
+mangoes/utils/__pycache__/
+notebooks/.ipynb_checkpoints/
+examples/.ipynb_checkpoints/
+
