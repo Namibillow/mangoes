@@ -272,6 +272,7 @@ class Vocabulary:
         self._from_list(words_list)
 
     def _from_list(self, words):
+        # TODO(nami) handle bigram for dependency as context 
         if not self._params["dependency"]:
             self._check_bigrams(words)
         self._index_word = words # list

@@ -9,4 +9,4 @@ mangoes/modeling/__pycache__/
 mangoes/utils/__pycache__/
 notebooks/.ipynb_checkpoints/
 examples/.ipynb_checkpoints/
-
+.vscode/

@@ -108,9 +108,11 @@ def _angles(vector, matrix, normalize=True):
     except AttributeError:
         pass
 
-    # fix rounding errors
-    cosines[[cosines > 1]] = 1
-    cosines[[cosines < -1]] = -1
+    # TODO fix rounding errors
+    # cosines[[cosines > 1]] = 1
+    # cosines[[cosines < -1]] = -1
+    cosines = np.where(cosines>1, 1, cosines)
+    cosines = np.where(cosines<-1,-1, cosines)
 
     return np.arccos(cosines)
 
