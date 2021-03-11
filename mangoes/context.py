@@ -248,9 +248,24 @@ class DependencyBasedContext(Context):
     labels: bool
         Whether or not the labels should be added to the output contexts. Default is False
 
+    directed: bool 
+        Whether or not the dependency relation should be considered as directed or unidirected. Default is False.
+
+    deprel_keep: tuple of valid dependency relation types existing in specified dependencies 
+        Specify which dependency relation to count for creating a co-occurrence matrix. Default is ('all').
+
+    pos_keep: tuple of valid part-of-speech tags existing in specified dependencies
+        Specify which pos to count for creating a a co-occurrence matrix. Default is ('all').
+
+    path_length: int 
+        Specify the length of  1 means only cosinder direct dependency. > 2 consideres indirect dependency as well of that length. 
+        Only positive integer is allowed. (<= 0 automatically resets to default value) Defaut is 1.   
+        e.g. path_length=3 includes the path legth of at most 3 distnce away from the target word. 
+
     """
     def __init__(self, vocabulary=None, entity="form", dependencies="universal-dependencies",
-                 collapse=False, labels=False, depth=1, deprel_inverse=True):
+                 collapse=False, labels=False, depth=1, directed=False, deprel_keep = ("all"),
+                 pos_keep=("all"), path_length = 1):
         super().__init__(vocabulary)
 
         if labels:
@@ -264,7 +279,15 @@ class DependencyBasedContext(Context):
         self.entity = entity
         self.filter_token = mangoes.vocabulary.create_token_filter(entity)
 
-        self._params.update({"parser": dependencies, "collapse": collapse, "labels": labels, "depth": depth, "deprel_inverse": deprel_inverse})
+        self.pos_keep = pos_keep
+        #TODO(nami) pos_keep filter for targetwords and context words eg. pos_keep : {"target": ("abc"), "context": ("abc")}
+        self._params.update({"parser": dependencies, "collapse": collapse, "labels": labels, 
+                            "depth": depth, "directed": directed, "deprel_keep" : deprel_keep, "path_length" : path_length
+                            })
+        
+        # if deprel_dict:
+        #     self._params.update(deprel_dict)
+
         if dependencies == "universal-dependencies":
             self.sentence_parser = self.ud_sentence_parser
         elif dependencies == "stanford-dependencies":
@@ -287,8 +310,11 @@ class DependencyBasedContext(Context):
         return self._params["depth"]
 
     @property
-    def deprel_inverse(self):
-        return self._params["deprel_inverse"]
+    def directed(self):
+        return self._params["directed"]
+
+    # @property
+    # def 
 
     def __call__(self, sentence, mask=False):
         dependency_tree = self.sentence_parser(sentence, self.collapse)
@@ -303,19 +329,19 @@ class DependencyBasedContext(Context):
                 for target_id, label in token_dependencies:
                     target = self.filter_token(sentence[target_id])
                     if not self.filter_vocabulary or target in self.filter_vocabulary:
-                        contexts[i].add(self._format_context(target, label, False))
-                    if self.deprel_inverse and (not self.filter_vocabulary or head in self.filter_vocabulary):
-                        contexts[target_id].add(self._format_context(head, label, True))
+                        contexts[i].add(self._format_context(target, label))
+                    if not self.directed and (not self.filter_vocabulary or head in self.filter_vocabulary):
+                        contexts[target_id].add(self._format_context(head, label)) #undirected relation considered
 
         return contexts
 
-    def _format_context_with_label(self, token, label, inverse):
+    def _format_context_with_label(self, token, label):
         if isinstance(token, str):
-            return token + "/" + label + "-"*inverse
+            return token + "/" + label 
         elif isinstance(token, tuple):
-            return str(token._asdict()) + "/" + label + "-"*inverse
+            return str(token._asdict()) + "/" + label
 
-    def _format_context_without_label(self, token, label, inverse):
+    def _format_context_without_label(self, token, label):
         return token
 
     @staticmethod
