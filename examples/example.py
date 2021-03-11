@@ -34,11 +34,19 @@ def main():
                                               filters = [ stopwords_filter_lemma])
 
     logging.info("Getting dependency based context")
+
+    # TODO(nami) whether pass as a dict or individually 
+    # dep_restrictions = {"deprel_keep":("all"), "pos_keep":("all"),"path": 1}
     dependency_context = mangoes.context.DependencyBasedContext(entity=("lemma","POS"), 
                                                             labels=True,
                                                             collapse=True, 
                                                             vocabulary=context_vocabulary,
-                                                            deprel_inverse=False)
+                                                            directed=False,
+                                                            deprel_keep = ("all"),
+                                                            pos_keep=("all"),
+                                                            path = 1
+                                                            # deprel_dict=dep_restrictions
+                                                            )
 
  
     logging.info("Creating co-occurrence matirx")
@@ -55,24 +63,24 @@ def main():
     logging.info("Analogy Test ")
     for analogy in ["king queen male"]: # ans: female
         print(analogy, '->', embeddings.analogy(analogy, 3).using_cosadd)
-        print(analogy, '->', embeddings.analogy(analogy).using_cosmul[0])
+        print(analogy, '->', embeddings.analogy(analogy,3).using_cosmul)
 
     logging.info("Visualizing ")
-    plt.figure()
+    # plt.figure()
 
-    # 1. distances between the words
-    ax = plt.subplot(221, projection='polar')
-    mangoes.visualize.plot_distances(embeddings, ax)
+    # # 1. distances between the words
+    # ax = plt.subplot(221, projection='polar')
+    # mangoes.visualize.plot_distances(embeddings, ax)
 
-    # 2. isotropy
-    ax = plt.subplot(222)
-    mangoes.visualize.plot_isotropy(embeddings, ax)
+    # # 2. isotropy
+    # ax = plt.subplot(222)
+    # mangoes.visualize.plot_isotropy(embeddings, ax)
 
-    # 3. t-sne
-    plt.subplot(212)
-    mangoes.visualize.plot_tsne(embeddings)
+    # # 3. t-sne
+    # plt.subplot(212)
+    # mangoes.visualize.plot_tsne(embeddings)
 
-    plt.show()
+    # plt.show()
 
 if __name__ == "__main__":
 
