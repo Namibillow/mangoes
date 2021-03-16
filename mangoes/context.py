@@ -249,21 +249,20 @@ class DependencyBasedContext(Context):
         Whether or not the labels should be added to the output contexts. Default is False
 
     directed: bool 
-        Whether or not the dependency relation should be considered as directed or unidirected. Default is False.
+        Whether or not the dependency relation should be considered as directed or undirected. Default is False.
 
     deprel_keep: tuple of valid dependency relation types existing in specified dependencies 
         Specify which dependency relation to count for creating a co-occurrence matrix. Default is None which means to include all 
         dependency relations.
 
-    path_length: int 
+    depth: int 
         Specify the length of  1 means only cosinder direct dependency. > 2 consideres indirect dependency as well of that length. 
         Only positive integer is allowed. (<= 0 automatically resets to default value) Defaut is 1.   
-        e.g. path_length=3 includes the path legth of at most 3 distnce away from the target word. 
+        e.g. depth=3 includes the path legth of at most 3 distnce away from the target word. 
 
     """
     def __init__(self, vocabulary=None, entity="form", dependencies="universal-dependencies",
-                 collapse=False, labels=False, depth=1, directed=False, deprel_keep = None,
-                 path_length = 1):
+                 collapse=False, labels=False, depth=1, directed=False, deprel_keep = None):
         super().__init__(vocabulary)
 
         if labels:
@@ -278,7 +277,7 @@ class DependencyBasedContext(Context):
         self.filter_token = mangoes.vocabulary.create_token_filter(entity)
 
         self._params.update({"parser": dependencies, "collapse": collapse, "labels": labels, 
-                            "depth": depth, "directed": directed, "deprel_keep" : deprel_keep, "path_length" : path_length
+                            "depth": depth, "directed": directed, "deprel_keep" : deprel_keep
                             })
 
         if dependencies == "universal-dependencies":
@@ -309,13 +308,9 @@ class DependencyBasedContext(Context):
     @property
     def deprel_keep(self):
         return self._params["deprel_keep"]
-    
-    @property 
-    def path_length(self):
-        return self._params["path_length"]
 
     def __call__(self, sentence, mask=False):
-        dependency_tree = self.sentence_parser(sentence, self.collapse, self.deprel_keep, self.path_length)
+        dependency_tree = self.sentence_parser(sentence, self.collapse)
 
         for _ in range(self.depth - 1):
             dependency_tree = self.add_children(dependency_tree)
@@ -325,11 +320,12 @@ class DependencyBasedContext(Context):
             if token_dependencies:
                 head = self.filter_token(sentence[i])
                 for target_id, label in token_dependencies:
-                    target = self.filter_token(sentence[target_id])
-                    if not self.filter_vocabulary or target in self.filter_vocabulary:
-                        contexts[i].add(self._format_context(target, label))
-                    if not self.directed and (not self.filter_vocabulary or head in self.filter_vocabulary):
-                        contexts[target_id].add(self._format_context(head, label)) #undirected relation considered
+                    if not self.deprel_keep or any([True for sub_label in label.split("_") if sub_label in self.deprel_keep]):
+                        target = self.filter_token(sentence[target_id])
+                        if not self.filter_vocabulary or target in self.filter_vocabulary:
+                            contexts[i].add(self._format_context(target, label))
+                        if not self.directed and (not self.filter_vocabulary or head in self.filter_vocabulary):
+                            contexts[target_id].add(self._format_context(head, label)) #undirected relation considered
 
         return contexts
 
@@ -355,7 +351,7 @@ class DependencyBasedContext(Context):
         return new_sentence_tree
 
     @staticmethod
-    def ud_sentence_parser(sentence, collapse=False, deprel_keep=None ,path_length=1):
+    def ud_sentence_parser(sentence, collapse=False):
         """Returns an adjacency list from a sentence annotated with Universal Dependencies
 
         Examples
@@ -382,15 +378,6 @@ class DependencyBasedContext(Context):
         collapse: boolean
             Whether or not to collapse prepositions
 
-        deprel_keep: tuple of valid dependency relation types existing in specified dependencies 
-            Specify which dependency relation to count for creating a co-occurrence matrix. Default is None which means to include all 
-            dependency relations.
-
-        path_length: int 
-            Specify the length of  1 means only cosinder direct dependency. > 2 consideres indirect dependency as well of that length. 
-            Only positive integer is allowed. (<= 0 automatically resets to default value) Defaut is 1.   
-            e.g. path_length=3 includes the path legth of at most 3 distnce away from the target word. 
-            
         Returns
         -------
         list of same size as sentence
@@ -407,8 +394,6 @@ class DependencyBasedContext(Context):
             try:
                 if token.dependency_relation == root_label:
                     continue
-                elif deprel_keep and token.dependency_relation not in deprel_keep:
-                    continue 
                 elif collapse and token.dependency_relation == preposition_label:
                     preposition_object_position = int(token.head) - 1
                     preposition_object = sentence[preposition_object_position]
@@ -435,9 +420,8 @@ class DependencyBasedContext(Context):
 
         return relations
 
-    # TODO(nami) apply parameters deprel_keep and path_length parameters as well
     @staticmethod
-    def stanford_dependencies_sentence_parser(sentence, collapse=False, deprel_keep=("all"), path_length=1):
+    def stanford_dependencies_sentence_parser(sentence, collapse=False, deprel_keep=None):
         """Returns an adjacency list from a sentence annotated with Stanford Dependencies
 
         Parameters
@@ -447,15 +431,6 @@ class DependencyBasedContext(Context):
         collapse: boolean
             Whether or not to collapse prepositions
         
-        deprel_keep: tuple of valid dependency relation types existing in specified dependencies 
-            Specify which dependency relation to count for creating a co-occurrence matrix. Default is None which means to include all 
-            dependency relations.
-
-        path_length: int 
-            Specify the length of  1 means only cosinder direct dependency. > 2 consideres indirect dependency as well of that length. 
-            Only positive integer is allowed. (<= 0 automatically resets to default value) Defaut is 1.   
-            e.g. path_length=3 includes the path legth of at most 3 distnce away from the target word. 
-
         Returns
         -------
         list of same size as sentence
@@ -469,7 +444,7 @@ class DependencyBasedContext(Context):
         relations = [set() for _ in sentence]
 
         for token in sentence:
-            if token.dependency_relation == root_label or token.dependency_relation not in deprel_keep:
+            if token.dependency_relation == root_label:
                 continue
             elif collapse and token.dependency_relation == preposition_label:
                 continue
