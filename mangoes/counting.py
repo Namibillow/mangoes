@@ -126,8 +126,8 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
 
     build_contexts_vocabulary = contexts_vocabulary is None
     if build_contexts_vocabulary:
-        # TODO(nami): if the context is DependencyBasedContext then pass dependenyc=True
-        contexts_vocabulary = mangoes.vocabulary.DynamicVocabulary()
+        dependency = isinstance(context, mangoes.context.DependencyBasedContext)
+        contexts_vocabulary = mangoes.vocabulary.DynamicVocabulary(dependency=dependency)
 
     same_vocabulary = (words_vocabulary == contexts_vocabulary)
 
