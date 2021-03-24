@@ -325,7 +325,7 @@ def _reduce_counter(total, part):
     return total_counter, total_nb_sentences
 
 # ##############################################
-# Filters to select vocabulary from a corpus
+# Filters to select vocabulary from a corpus   #
 
 
 @mangoes.utils.decorators.counter_filter
@@ -353,6 +353,7 @@ def truncate(max_nb, words_count):
 
 
     """
+    _logger.info(f"Truncate: keeping at most {max_nb} words ")
     return collections.Counter({word: frequency
                                 for (word, frequency) in words_count.most_common(max_nb)})
 
@@ -383,7 +384,7 @@ def remove_least_frequent(min_frequency, words_count):
     :class:`mangoes.vocabulary.Vocabulary`
     :func:`mangoes.utils.decorators.counter_filter`
     """
-
+    _logger.info(f"Remove: remove less than {min_frequency} frequent words")
     if min_frequency >= 1:
         return collections.Counter({w: freq
                                     for w, freq in words_count.items() if freq >= min_frequency})
@@ -423,6 +424,8 @@ def remove_most_frequent(max_frequency, words_count):
     :class:`mangoes.vocabulary.Vocabulary`
     :func:`mangoes.utils.decorators.counter_filter`
     """
+
+    _logger.info(f"Remove: remove more than {max_frequency} frequent words")
     if max_frequency >= 1:
         return collections.Counter(
             {w: freq for w, freq in words_count.items() if freq <= max_frequency})
@@ -458,9 +461,12 @@ def remove_elements(stopwords, words_count=None, attribute=None):
     :class:`mangoes.vocabulary.Vocabulary`
     :func:`mangoes.utils.decorators.counter_filter`
     """
+
     if attribute:
+        _logger.info(f"Remove: skip stopwords from {attribute}")
         return collections.Counter({w: freq for w, freq in words_count.items()
                                     if getattr(w, attribute) not in stopwords})
+    _logger.info("Remove: skip stopwords")
     return collections.Counter({w: freq for w, freq in words_count.items() if w not in stopwords})
 
 
@@ -490,6 +496,9 @@ def filter_by_attribute(attribute, value, words_count=None):
     """
     if isinstance(value, str):
         value = [value]
+
+    _logger.info(f"Filter: keep only {attribute} with value of {value}")
+
     return collections.Counter({w: freq for w, freq in words_count.items()
                                 if getattr(w, attribute) in value})
 
@@ -530,4 +539,6 @@ def filter_attributes(attributes, words_count=None):
     new_words_count = collections.Counter()
     for w in words_count:
         new_words_count[token_filter(w)] += words_count[w]
+
+    _logger.info(f"Filter: keep only {attributes}")
     return new_words_count
