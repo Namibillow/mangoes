@@ -256,13 +256,13 @@ class DependencyBasedContext(Context):
         dependency relations.
 
     depth: int 
-        Specify the length of  1 means only cosinder direct dependency. > 2 consideres indirect dependency as well of that length. 
+        Specify the length of relations to be considered. 1 means only cosinder direct dependency. > 2 consideres indirect dependency as well of that length. 
         Only positive integer is allowed. (<= 0 automatically resets to default value) Defaut is 1.   
         e.g. depth=3 includes the path legth of at most 3 distnce away from the target word. 
 
     """
     def __init__(self, vocabulary=None, entity="form", dependencies="universal-dependencies",
-                 collapse=False, labels=False, depth=1, directed=False, deprel_keep = None):
+                 collapse=False, labels=False, depth=1, directed=False, deprel_keep=None):
         super().__init__(vocabulary)
 
         if labels:
@@ -311,16 +311,16 @@ class DependencyBasedContext(Context):
 
     def __call__(self, sentence, mask=False):
         dependency_tree = self.sentence_parser(sentence, self.collapse)
-
         for _ in range(self.depth - 1):
-            dependency_tree = self.add_children(dependency_tree)
+            dependency_tree = self.add_children(dependency_tree, self.depth)
 
         contexts = [set() for _ in sentence]
         for i, token_dependencies in enumerate(dependency_tree):
             if token_dependencies:
                 head = self.filter_token(sentence[i])
                 for target_id, label in token_dependencies:
-                    if not self.deprel_keep or any([True for sub_label in label.split("_") if sub_label in self.deprel_keep]):
+                    # Only consider those relation conly consisting specified dependency relation or connected by "case"
+                    if not self.deprel_keep or all([(sub_label in self.deprel_keep or (self.depth > 1 and sub_label[:4] == "case")) for sub_label in label.split("+")]):
                         target = self.filter_token(sentence[target_id])
                         if not self.filter_vocabulary or target in self.filter_vocabulary:
                             contexts[i].add(self._format_context(target, label))
@@ -339,14 +339,17 @@ class DependencyBasedContext(Context):
         return token
 
     @staticmethod
-    def add_children(sentence_tree):
+    def add_children(sentence_tree, depth):
+        # TODO(nami) Fix here to instead only keeping the depth deprel, keep the original as well
         new_sentence_tree = []
         for token_children in sentence_tree:
             new_children = set(token_children)
             for child, child_label in token_children:
                 if sentence_tree[child]:
                     for grand_child, grand_child_label in sentence_tree[child]:
-                        new_children.add((grand_child, child_label + '_' + grand_child_label))
+                        new_label = child_label + '+' + grand_child_label
+                        if len(new_label.split("+")) <= depth:
+                            new_children.add((grand_child, new_label))
             new_sentence_tree.append(new_children)
         return new_sentence_tree
 
