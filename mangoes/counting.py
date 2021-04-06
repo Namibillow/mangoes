@@ -125,11 +125,13 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
     counter = collections.Counter()
 
     build_contexts_vocabulary = contexts_vocabulary is None
+    
+    dependency = isinstance(context, mangoes.context.DependencyBasedContext)
+    
     if build_contexts_vocabulary:
-        dependency = isinstance(context, mangoes.context.DependencyBasedContext)
         contexts_vocabulary = mangoes.vocabulary.DynamicVocabulary(dependency=dependency)
 
-    same_vocabulary = (words_vocabulary == contexts_vocabulary)
+    same_vocabulary = (words_vocabulary == contexts_vocabulary) and not dependency
 
     filter_word_sentence = mangoes.vocabulary.create_tokens_filter(words_vocabulary.entity)
     filter_bigrams_sentence = mangoes.vocabulary.create_bigrams_filter(words_vocabulary.get_bigrams())
@@ -187,7 +189,7 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
 
                 counter = collections.Counter()
                 if build_contexts_vocabulary:
-                    contexts_vocabulary = mangoes.vocabulary.DynamicVocabulary()
+                    contexts_vocabulary = mangoes.vocabulary.DynamicVocabulary(dependency=dependency)
             except StopIteration:
                 break
 

@@ -480,7 +480,7 @@ def filter_by_attribute(attribute, value, words_count=None):
     -----------
     attribute: str
         If the keys in words_count are annotated tokens, attribute to consider
-    value: string or set of strings
+    value: string or set/list of strings
         List of the values to keep for the attribute
     words_count: collections.Counter
         The counter to filter
