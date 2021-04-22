@@ -246,7 +246,7 @@ class XmlSentenceGenerator(AnnotatedSentenceGenerator):
             yield self.transform([self._parse_token(token,
                                                     xml_sentence.find("dependencies[@type='basic-dependencies']"))
                                   for token in xml_sentence.iter("token")])
-        raise StopIteration
+        return 
 
     def _sentences_from_files(self):
         for xml_file in mangoes.utils.io.recursive_list_files(self.source):
@@ -310,7 +310,7 @@ class ConllUSentenceGenerator(ConllSentenceGenerator):
 
     class Token(namedtuple("Token", FIELDS)):
         def lower(self):
-            return self.__class__(self.id, self.form.lower(), self.lemma, self.POS, self.xpostag, self.feats,
+            return self.__class__(self.id, self.form.lower(), self.lemma.lower(), self.POS, self.xpostag, self.feats,
                                   self.head, self.dependency_relation, self.deps, self.misc)
 
         def replace(self, value):
