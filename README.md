@@ -1,5 +1,9 @@
 [![coverage report](https://gitlab.inria.fr/magnet/mangoes/badges/master/coverage.svg)](https://gitlab.inria.fr/magnet/mangoes/commits/master)
 
+This repository is originally from [mangoes](https://gitlab.inria.fr/magnet/mangoes) developed by [magnet](https://team.inria.fr/magnet/software/) teams in INRIA. If you have questions about the specific features (unless it's me who wrote the part of code), please go to their link and contact [them](https://gitlab.inria.fr/magnet/mangoes/-/graphs/master) instead. 
+
+I only use/modify this project for my supervised project at University of Lorraine. My main task is to add more functionality in dependency context. 
+
 # Mangoes
 
 Mangoes is a toolbox for constructing and evaluating word vector representations (aka word embeddings). The main functionalities are:
