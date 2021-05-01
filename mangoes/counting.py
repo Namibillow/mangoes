@@ -3,7 +3,7 @@
 
 This module provides the main function count_cooccurrence to construct a CountBasedRepresentation.
 """
-import collections
+from  collections import defaultdict, namedtuple
 import logging
 import math
 import multiprocessing
@@ -122,7 +122,7 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
     --------
     (collections.Counter, mangoes.Vocabulary)
     """
-    counter = collections.Counter()
+    counter = defaultdict(float)
 
     build_contexts_vocabulary = contexts_vocabulary is None
     
@@ -159,27 +159,58 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
 
                     if build_contexts_vocabulary:
                         contexts_sentence = context.filter_sentence(sentence)
-                        counter.update([(word, contexts_vocabulary.index(context_word))
-                                        for word, word_contexts in zip(word_sentence, get_contexts(contexts_sentence))
-                                        for context_word in word_contexts if word > -1])
+
+                        for word, word_contexts in zip(word_sentence, get_contexts(contexts_sentence)):
+                            if word > -1:
+                                for context_word in word_contexts:
+                                    if dependency: # put weight 
+                                        context_word_split = context_word.rsplit('/', 1)
+                                        try:
+                                            new_tok = convert(eval(context_word_split[0]))
+                                        except:
+                                            new_tok = context_word_split[0]
+                                        counter[(word, contexts_vocabulary.index(new_tok))]+=float(context_word_split[-1])
+                                    else:
+                                        counter[(word, contexts_vocabulary.index(context_word))]+=1
 
                     else:
                         if same_vocabulary:
-                            counter.update([(word, context_word)
-                                            for word, word_contexts in
-                                            zip(word_sentence, get_contexts(word_sentence, word_sentence_mask))
-                                            for context_word in word_contexts if word > -1])
+                            for word, word_contexts in zip(word_sentence, get_contexts(word_sentence, word_sentence_mask)):
+                                if word > -1:
+                                    for context_word in word_contexts:
+                                        if dependency: # weight is put 
+                                            context_word_split = context_word.rsplit('/', 1)
+                                            counter[(word, context_word_split[0])]+= float(context_word_split[-1])
+                                        else:
+                                            counter[(word, context_word)]+=1
+
                         elif context_accept_encoded_sentence:
                             contexts_sentence = contexts_vocabulary.indices(context.filter_sentence(sentence))
-                            counter.update([(word, context_word)
-                                            for word, word_contexts in
-                                            zip(word_sentence, get_contexts(contexts_sentence))
-                                            for context_word in word_contexts if word > -1])
+
+                            for word, word_contexts in zip(word_sentence, get_contexts(contexts_sentence)):
+                                if word > -1:
+                                    for context_word in word_contexts:
+                                        if dependency: # weight is put 
+                                            context_word_split = context_word.rsplit('/', 1)
+                                            counter[(word, context_word_split[0])]+=float(context_word_split[-1])
+                                        else:
+                                            counter[(word, context_word)]+=1
+
                         else:
                             contexts_sentence = sentence
-                            counter.update([(word_id, contexts_vocabulary.index(context_word))
-                                            for word_id, word_contexts in zip(word_sentence, get_contexts(contexts_sentence))
-                                            for context_word in word_contexts if word_id > -1 ])
+
+                            for word_id, word_contexts in zip(word_sentence, get_contexts(contexts_sentence)):
+                                if word_id > -1:
+                                    for context_word in word_contexts:
+                                        if dependency: # put weight 
+                                            context_word_split = context_word.rsplit('/', 1)
+                                            try:
+                                                new_tok = convert(eval(context_word_split[0]))
+                                            except: 
+                                                new_tok = context_word_split[0]
+                                            counter[(word_id, contexts_vocabulary.index(new_tok))]+=float(context_word_split[-1])
+                                        else:
+                                            counter[(word_id, contexts_vocabulary.index(context_word))]+=1
 
                     progress_bar.update()
 
@@ -187,7 +218,7 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
                                                              shape=(len(words_vocabulary), len(contexts_vocabulary)))
                 yield (csr, contexts_vocabulary)
 
-                counter = collections.Counter()
+                counter = defaultdict(int)
                 if build_contexts_vocabulary:
                     contexts_vocabulary = mangoes.vocabulary.DynamicVocabulary(dependency=dependency)
             except StopIteration:
@@ -197,6 +228,8 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
                                                  shape=(len(words_vocabulary), len(contexts_vocabulary)))
     yield (csr, contexts_vocabulary)
 
+def convert(dictionary):
+    return namedtuple('Token', dictionary.keys())(**dictionary)
 
 def _subsample(sentence, subsampler):
     return [word if word not in subsampler or random.random() > subsampler[word] else None for word in sentence]

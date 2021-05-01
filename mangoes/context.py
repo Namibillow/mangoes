@@ -21,14 +21,12 @@ Examples
 """
 import abc
 import logging
-from mangoes.corpus import Token
 import random
 import warnings
 
-from nltk.util import ngrams
-
 import mangoes
 import mangoes.utils.exceptions
+from mangoes.utils import traversal
 
 _logger = logging.getLogger(__name__)
 
@@ -260,12 +258,27 @@ class DependencyBasedContext(Context):
         Only positive integer is allowed. (<= 0 automatically resets to default value) Defaut is 1.   
         e.g. depth=3 includes the path legth of at most 3 distnce away from the target word. 
 
+    weight: bool
+        Whether of not to use the weight for building co-occurrng matrix. If True and no weight_scheme is not provided, then a fraction of size depth is taken. 
+        e.g. if depth=1 then it assigns a value of 1, else, it assigns value of 1/|depth|.
+
+    weight_scheme: dict 
+        Where keys are existing dependency relations and values are the weight. Only applied if weight parameter is set to True. Default is None.
+
+
     """
     def __init__(self, vocabulary=None, entity="form", dependencies="universal-dependencies",
-                 collapse=False, labels=False, depth=1, directed=False, deprel_keep=None):
+                 collapse=False, labels=False, depth=1, directed=False, deprel_keep=None, weight=False, weight_scheme=None):
         super().__init__(vocabulary)
 
-        if labels:
+        # TODO(nami) Update the weight feature. 
+        if weight or weight_scheme:
+            warnings.warn(
+            "The weight methods is still work in progress. For now passing weight and weight_function will be resetted. Please don't use the feature yet.")
+            weight = False
+            weight_scheme = None 
+
+        if labels :
             self.filter_vocabulary = self.vocabulary
             self.vocabulary = mangoes.vocabulary.DynamicVocabulary(dependency=True)
             self._format_context = self._format_context_with_label
@@ -276,8 +289,15 @@ class DependencyBasedContext(Context):
         self.entity = entity
         self.filter_token = mangoes.vocabulary.create_token_filter(entity)
 
+        if weight_scheme and not weight:
+            weight = True 
+            
+        if weight and weight_scheme and (not isinstance(weight_scheme, dict)):
+            raise mangoes.utils.exceptions.UnsupportedType("dict is the only allowed type for weight_scheme")
+
         self._params.update({"parser": dependencies, "collapse": collapse, "labels": labels, 
-                            "depth": depth, "directed": directed, "deprel_keep" : deprel_keep
+                            "depth": depth, "directed": directed, "deprel_keep" : deprel_keep,
+                            "weight":weight, "weight_scheme": weight_scheme
                             })
 
         if dependencies == "universal-dependencies":
@@ -309,47 +329,90 @@ class DependencyBasedContext(Context):
     def deprel_keep(self):
         return self._params["deprel_keep"]
 
+    @property 
+    def weight(self):
+        return self._params["weight"]
+
+    @property 
+    def weight_scheme(self):
+        return self._params["weight_scheme"]
+
     def __call__(self, sentence, mask=False):
         dependency_tree = self.sentence_parser(sentence, self.collapse)
-        for _ in range(self.depth - 1):
-            dependency_tree = self.add_children(dependency_tree, self.depth)
+
+        if self.directed:
+            for i in range(self.depth - 1):
+                dependency_tree = self.add_children(dependency_tree, i+2)
+        else:
+            dependency_tree = self.add_length_path(dependency_tree, self.depth)
 
         contexts = [set() for _ in sentence]
         for i, token_dependencies in enumerate(dependency_tree):
             if token_dependencies:
-                head = self.filter_token(sentence[i])
                 for target_id, label in token_dependencies:
-                    # Only consider those relation conly consisting specified dependency relation or connected by "case"
-                    if not self.deprel_keep or all([(sub_label in self.deprel_keep or (self.depth > 1 and sub_label[:4] == "case")) for sub_label in label.split("+")]):
+                    labels = label.split("+")
+                    weight = 1 
+                    if self.weight_scheme:
+                        weight = max([self.weight_scheme.get(l, 1) for l in labels]) 
+                    elif self.weight:
+                        weight = 1 / len(labels)
+
+                    weight = str(weight)
+                    # Only consider those relation only consisting specified dependency relation or connected by preposition
+                    if not self.deprel_keep or all([(sub_label in self.deprel_keep or sub_label[:4] in ["case","prep"]) for sub_label in label.split("+")]):
                         target = self.filter_token(sentence[target_id])
                         if not self.filter_vocabulary or target in self.filter_vocabulary:
-                            contexts[i].add(self._format_context(target, label))
-                        if not self.directed and (not self.filter_vocabulary or head in self.filter_vocabulary):
-                            contexts[target_id].add(self._format_context(head, label)) #undirected relation considered
+                            contexts[i].add(self._format_context(target, label, weight))
 
         return contexts
 
-    def _format_context_with_label(self, token, label):
+    def _format_context_with_label(self, token, label, weight):
         if isinstance(token, str):
-            return token + "/" + label 
+            return token + "/" + label  + "/" + weight
         elif isinstance(token, tuple):
-            return str(token._asdict()) + "/" + label
+            return str(token._asdict()) + "/" + label + "/" + weight
 
-    def _format_context_without_label(self, token, label):
-        return token
+    def _format_context_without_label(self, token, label, weight):
+        if isinstance(token, str):
+            return token + "/" + weight
+        elif isinstance(token, tuple):
+            return str(token._asdict()) + "/" + weight
 
     @staticmethod
     def add_children(sentence_tree, depth):
-        # TODO(nami) Fix here to instead only keeping the depth deprel, keep the original as well
         new_sentence_tree = []
         for token_children in sentence_tree:
             new_children = set(token_children)
             for child, child_label in token_children:
                 if sentence_tree[child]:
-                    for grand_child, grand_child_label in sentence_tree[child]:
+                    for grand_child, grand_child_label  in sentence_tree[child]:
                         new_label = child_label + '+' + grand_child_label
-                        if len(new_label.split("+")) <= depth:
+                        if len(new_label.split("+")) == depth:
                             new_children.add((grand_child, new_label))
+            new_sentence_tree.append(new_children)
+        return new_sentence_tree
+
+    @staticmethod
+    def add_length_path(sentence_tree, depth):
+        new_sentence_tree = []
+
+        parents = [set() for _ in range(len(sentence_tree))]
+        visited = [set() for _ in range(len(sentence_tree))]
+
+        for i, token_children in enumerate(sentence_tree):
+            traversal.find_parents(0, depth, i, "", sentence_tree, parents[i], visited[i])
+        
+        # add undirectionaly 
+        for i, token_children in enumerate(sentence_tree):
+            for child, child_label in token_children:
+                sentence_tree[child].add((i, child_label))
+
+        for i, token_children in enumerate(sentence_tree): 
+            new_children = set(token_children)
+
+            for node, label, parent_far in parents[i]:
+                traversal.dfs(depth-parent_far, node, label, visited[i], new_children, sentence_tree)
+
             new_sentence_tree.append(new_children)
         return new_sentence_tree
 
@@ -394,6 +457,7 @@ class DependencyBasedContext(Context):
         relations = [set() for _ in sentence]
 
         for token in sentence:
+            # weight = depth
             try:
                 if token.dependency_relation == root_label:
                     continue
@@ -402,7 +466,6 @@ class DependencyBasedContext(Context):
                     preposition_object = sentence[preposition_object_position]
 
                     head_position = int(preposition_object.head) - 1
-
                     relations[head_position].add(
                         (preposition_object_position, preposition_label + "_" + token.form))
                 elif collapse and token.dependency_relation == preposition_object_label:
@@ -424,7 +487,7 @@ class DependencyBasedContext(Context):
         return relations
 
     @staticmethod
-    def stanford_dependencies_sentence_parser(sentence, collapse=False, deprel_keep=None):
+    def stanford_dependencies_sentence_parser(sentence, collapse=False):
         """Returns an adjacency list from a sentence annotated with Stanford Dependencies
 
         Parameters
@@ -447,6 +510,7 @@ class DependencyBasedContext(Context):
         relations = [set() for _ in sentence]
 
         for token in sentence:
+            # weight = depth 
             if token.dependency_relation == root_label:
                 continue
             elif collapse and token.dependency_relation == preposition_label:

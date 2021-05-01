@@ -309,6 +309,15 @@ class ConllUSentenceGenerator(ConllSentenceGenerator):
     FIELDS = ("id", "form", "lemma", "POS", "xpostag", "feats", "head", "dependency_relation", "deps", "misc")
 
     class Token(namedtuple("Token", FIELDS)):
+        def __new__(cls, id, form, lemma, POS, xpostag, feats, head, dependency_relation, deps, misc):
+            # TODO(nami) better way to replace xpostag with POS
+            if POS == '_' and xpostag:
+                return super().__new__(cls, id, form, lemma, xpostag, xpostag, feats,
+                                    head, dependency_relation, deps, misc)
+            else:
+                return super().__new__(cls, id, form, lemma, POS, xpostag, feats,
+                                    head, dependency_relation, deps, misc)
+
         def lower(self):
             return self.__class__(self.id, self.form.lower(), self.lemma.lower(), self.POS, self.xpostag, self.feats,
                                   self.head, self.dependency_relation, self.deps, self.misc)
