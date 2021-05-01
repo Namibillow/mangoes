@@ -147,20 +147,20 @@ def test_annotated_corpus_brown_digit():
 
 @pytest.mark.integration
 def test_annotated_corpus_conll_lower(conll_source_string):
+
     corpus = mangoes.Corpus(conll_source_string, reader=mangoes.corpus.CONLL, lower=True)
 
     assert 6 == corpus.nb_sentences
     assert 30 == corpus.size
     assert 15 == len(corpus.words_count)
-
     expected_word_count = {('is', 'be', 'VBZ'): 6, ('than', 'than', 'IN'): 6,
                            ('better', 'better', 'JJR'): 6,
                            ('beautiful', 'beautiful', 'JJ'): 1, ('ugly', 'ugly', 'JJ'): 1,
-                           ('explicit', 'Explicit', 'NNP'): 1, ('implicit', 'implicit', 'JJ'): 1,
+                           ('explicit', 'explicit', 'NNP'): 1, ('implicit', 'implicit', 'JJ'): 1,
                            ('simple', 'simple', 'NN'): 1, ('complex', 'complex', 'JJ'): 1,
                            ('complex', 'complex', 'NN'): 1, ('complicated', 'complicate', 'VBN'): 1,
-                           ('flat', 'Flat', 'NNP'): 1, ('nested', 'nested', 'JJ'): 1,
-                           ('sparse', 'Sparse', 'NNP'): 1, ('dense', 'dense', 'JJ'): 1}
+                           ('flat', 'flat', 'NNP'): 1, ('nested', 'nested', 'JJ'): 1,
+                           ('sparse', 'sparse', 'NNP'): 1, ('dense', 'dense', 'JJ'): 1}
 
     assert Counter(expected_word_count) == corpus.words_count
 

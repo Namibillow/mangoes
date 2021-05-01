@@ -342,7 +342,7 @@ def test_cooccurrence_word_word_from_xml_string(xml_source_string):
 def test_count_cooccurrence_window_2_2(dummy_raw_corpus):
     words = DummyVocabulary(["beautiful", "ugly", "simple", "complex", "complicated"])
     context_words = DummyVocabulary(["is", "better", "than"])
-    symmetric_window_2_2 = mangoes.context.Window(context_words, window_half_size=2)
+    symmetric_window_2_2 = mangoes.context.Window(context_words, size=2)
 
     result = mangoes.counting.count_cooccurrence(dummy_raw_corpus, words,
                                                  context=symmetric_window_2_2)
@@ -394,7 +394,7 @@ def test_count_cooccurrence_dynamic_window(dummy_raw_corpus):
     assert any(result.matrix.toarray().flatten() < np.array(expected_count_alt).flatten())
 
 
-
+# TODO(nami) fix.
 @pytest.mark.integration
 def test_count_cooccurrence_dependency_based_context():
     conll_string = ["1	australian	_	_	JJ	_	2	amod	_	_",
@@ -439,12 +439,14 @@ def test_count_cooccurrence_dependency_based_context_with_labels():
     dep_based_context = mangoes.context.DependencyBasedContext(context_words, collapse=True, labels=True,
                                                                dependencies="stanford-dependencies")
 
-    # australian/amod scientist/amod-  scientist/nsubj  star/dobj   telescope/prep_with
-    #       [0,               1,                0,            0,              0]  # australian
-    #       [1,               0,                0,            0,              0]  # scientist
-    #       [0,               0,                1,            1,              1]  # discovers
-    #       [0,               0,                0,            0,              0]  # star
+    # scientist/amod  australian/amod    star/dobj   telescope/prep_with    scientist/nsubj 
+    # expected_count = [
+    #       [1,               0,                0,            0,              0],  # australian
+    #       [0,               1,                0,            0,              0],  # scientist
+    #       [0,               0,                1,            1,              1],  # discovers
+    #       [0,               0,                0,            0,              0],  # star
     #       [0,               0,                0,            0,              0]  # telescope
+    # ]
     # the vocabulary is built during counting so ordering might not be respected
 
     result = mangoes.counting.count_cooccurrence(corpus, words, context=dep_based_context)
@@ -492,7 +494,174 @@ def test_count_cooccurrence_dependency_based_context_with_labels_no_vocabulary()
     assert 8 == len(result.contexts_words)
     assert 8 == result.matrix.sum()
 
+@pytest.mark.integration
+def test_count_cooccurrence_dependency_based_context_depth_2():
+    conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
+                    "2	scientist	scientist	NOUN	NN	_	3	nsubj	_	_",
+                    "3	discovers	discover	VERB	VBZ	_	0	root	_	_",
+                    "4	star	star	NOUN	NN	_	3	dobj	_	_",
+                    "5	with	with	ADP	IN	_	8	case	_	_",
+                    "6	very	very	ADV	RB	_	7	advmod	_	_",
+                    "7	large	large	ADJ	JJ	Degree=Pos	8	amod	_	_",
+                    "8	telescope	telescope	NOUN	NN	_	3	nmod	_	_"]
 
+    corpus = mangoes.Corpus(conll_string, reader=mangoes.corpus.CONLLU)
+    words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star", "with", "very", "large", "telescope"], entity="form")
+
+    dep_based_context = mangoes.context.DependencyBasedContext(collapse=True, depth=2)
+    
+    result = mangoes.counting.count_cooccurrence(corpus, words, context=dep_based_context)
+
+    assert 7 == len(result.contexts_words)
+    assert 24 == result.matrix.sum()
+
+@pytest.mark.integration
+def test_count_cooccurrence_dependency_based_context_depth_2_with_labels():
+    conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
+                    "2	scientist	scientist	NOUN	NN	_	3	nsubj	_	_",
+                    "3	discovers	discover	VERB	VBZ	_	0	root	_	_",
+                    "4	star	star	NOUN	NN	_	3	dobj	_	_",
+                    "5	with	with	ADP	IN	_	8	case	_	_",
+                    "6	very	very	ADV	RB	_	7	advmod	_	_",
+                    "7	large	large	ADJ	JJ	Degree=Pos	8	amod	_	_",
+                    "8	telescope	telescope	NOUN	NN	_	3	nmod	_	_"]
+
+    corpus = mangoes.Corpus(conll_string, reader=mangoes.corpus.CONLLU)
+    words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star", "with", "very", "large", "telescope"], entity="form")
+
+    dep_based_context = mangoes.context.DependencyBasedContext(collapse=True, labels=True, depth=2)
+    
+    result = mangoes.counting.count_cooccurrence(corpus, words, context=dep_based_context)
+
+    assert 24 == len(result.contexts_words)
+    assert 24 == result.matrix.sum()
+    assert {"scientist/amod",
+            "discovers/amod+nsubj",
+            "australian/amod",
+            "discovers/nsubj",
+            "star/nsubj+dobj",
+            "telescope/nsubj+case_with",
+            "australian/nsubj+amod",
+            "scientist/nsubj",
+            "star/dobj",
+            "telescope/case_with",
+            "large/case_with+amod",
+            "discovers/dobj",
+            "scientist/dobj+nsubj",
+            "telescope/dobj+case_with",
+            "large/advmod",
+            "telescope/advmod+amod",
+            "very/advmod",
+            "telescope/amod",
+            "discovers/amod+case_with",
+            "large/amod",
+            "very/amod+advmod",
+            "discovers/case_with",
+            "star/case_with+dobj",
+            "scientist/case_with+nsubj"} == set(result.contexts_words)
+
+@pytest.mark.integration
+def test_count_cooccurrence_dependency_based_context_deprel():
+    conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
+                    "2	scientist	scientist	NOUN	NN	_	3	nsubj	_	_",
+                    "3	discovers	discover	VERB	VBZ	_	0	root	_	_",
+                    "4	star	star	NOUN	NN	_	3	dobj	_	_",
+                    "5	with	with	ADP	IN	_	8	case	_	_",
+                    "6	very	very	ADV	RB	_	7	advmod	_	_",
+                    "7	large	large	ADJ	JJ	Degree=Pos	8	amod	_	_",
+                    "8	telescope	telescope	NOUN	NN	_	3	nmod	_	_"]
+
+    corpus = mangoes.Corpus(conll_string, reader=mangoes.corpus.CONLLU)
+    words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star", "with", "very", "large", "telescope"], entity="form")
+
+    dep_based_context = mangoes.context.DependencyBasedContext(collapse=True, labels=True, depth=2, deprel_keep=("nmod", "nsubj", "amod"))
+    
+    result = mangoes.counting.count_cooccurrence(corpus, words, context=dep_based_context)
+
+    assert 14 == len(result.contexts_words)
+    assert 14 == result.matrix.sum()
+    assert {"scientist/amod",
+            "discovers/amod+nsubj",
+            "australian/amod",
+            "discovers/nsubj",
+            "telescope/nsubj+case_with",
+            "australian/nsubj+amod",
+            "scientist/nsubj",
+            "telescope/case_with",
+            "large/case_with+amod",
+            "telescope/amod",
+            "discovers/amod+case_with",
+            "large/amod",
+            "discovers/case_with",
+            "scientist/case_with+nsubj"} == set(result.contexts_words)
+
+# TODO(nami) fix cython. 
+@pytest.mark.skip(reason="Weight doesn't work yet")
+@pytest.mark.integration
+def test_count_cooccurrence_dependency_based_context_weight():
+    conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
+                    "2	scientist	scientist	NOUN	NN	_	3	nsubj	_	_",
+                    "3	discovers	discover	VERB	VBZ	_	0	root	_	_",
+                    "4	star	star	NOUN	NN	_	3	dobj	_	_",
+                    "5	with	with	ADP	IN	_	8	case	_	_",
+                    "6	very	very	ADV	RB	_	7	advmod	_	_",
+                    "7	large	large	ADJ	JJ	Degree=Pos	8	amod	_	_",
+                    "8	telescope	telescope	NOUN	NN	_	3	nmod	_	_"]
+
+    corpus = mangoes.Corpus(conll_string, reader=mangoes.corpus.CONLLU)
+    words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star","very", "large", "telescope"], entity="form")
+    context_words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star","very", "large", "telescope"])
+
+    dep_based_context = mangoes.context.DependencyBasedContext(vocabulary=context_words, collapse=True, depth=2,
+                                                               weight=True, entity="form")
+
+    #             australian scientist  discovers  star   very   large    telescope
+    expected_count = [[0,         1,      0.5,      0,    0,    0,  0],  # australian
+                      [1,         0,      1,      0.5,   0,    0,    0.5],  # scientist
+                      [0.5,         1,      0,      1,   0,    0.5,    1],  # discovers
+                      [0,         0.5,      1,      0,   0,    0,    0.5],  # star
+                      [0,         0,      0,      0,   0,    1,    0.5],  # very
+                      [0,         0,      0.5,      0,   1,    0,    1],  # large
+                      [0,         0.5,      1,      0.5,   0.5,    1,    0]]  # telescope
+
+    result = mangoes.counting.count_cooccurrence(corpus, words, context=dep_based_context)
+
+    np.testing.assert_array_equal(expected_count, result.matrix.A)
+
+@pytest.mark.skip(reason="Weight doesn't work yet")
+@pytest.mark.integration
+def test_count_cooccurrence_dependency_based_context_weight_scheme():
+    conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
+                    "2	scientist	scientist	NOUN	NN	_	3	nsubj	_	_",
+                    "3	discovers	discover	VERB	VBZ	_	0	root	_	_",
+                    "4	star	star	NOUN	NN	_	3	dobj	_	_",
+                    "5	with	with	ADP	IN	_	8	case	_	_",
+                    "6	very	very	ADV	RB	_	7	advmod	_	_",
+                    "7	large	large	ADJ	JJ	Degree=Pos	8	amod	_	_",
+                    "8	telescope	telescope	NOUN	NN	_	3	nmod	_	_"]
+
+    corpus = mangoes.Corpus(conll_string, reader=mangoes.corpus.CONLLU)
+    words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star","very", "large", "telescope"], entity="form")
+    context_words = mangoes.Vocabulary(["australian", "scientist", "discovers", "star","very", "large", "telescope"])
+
+    weight_scheme = {"nsubj": 5, "dobj": 4, "obj": 4, "amod": 3, "advmod":2}
+
+    dep_based_context = mangoes.context.DependencyBasedContext(vocabulary=context_words, collapse=True, depth=2,
+                                                               weight=True, weight_scheme=weight_scheme, entity="form")
+
+    #             australian scientist  discovers  star   very   large    telescope
+    expected_count = [[0,         3,      5,      0,    0,    0,  0],  # australian
+                      [3,         0,      5,      5,   0,    0,    5],  # scientist
+                      [5,         5,      0,      4,   0,    3,    1],  # discovers
+                      [0,         5,      4,      0,   0,    0,    4],  # star
+                      [0,         0,      0,      0,   0,    2,    3],  # very
+                      [0,         0,      3,      0,   2,    0,    3],  # large
+                      [0,         5,      1,      4,   3,    3,    0]]  # telescope
+
+    result = mangoes.counting.count_cooccurrence(corpus, words, context=dep_based_context)
+
+    np.testing.assert_array_equal(expected_count, result.matrix.A)
+    
 # ## Integration with subsampling
 @pytest.mark.integration
 def test_count_cooccurrence_subsampling(dummy_raw_corpus):
