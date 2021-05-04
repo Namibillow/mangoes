@@ -271,13 +271,6 @@ class DependencyBasedContext(Context):
                  collapse=False, labels=False, depth=1, directed=False, deprel_keep=None, weight=False, weight_scheme=None):
         super().__init__(vocabulary)
 
-        # TODO(nami) Update the weight feature. 
-        if weight or weight_scheme:
-            warnings.warn(
-            "The weight methods is still work in progress. For now passing weight and weight_function will be resetted. Please don't use the feature yet.")
-            weight = False
-            weight_scheme = None 
-
         if labels :
             self.filter_vocabulary = self.vocabulary
             self.vocabulary = mangoes.vocabulary.DynamicVocabulary(dependency=True)

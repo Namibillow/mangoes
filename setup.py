@@ -1,12 +1,14 @@
 from setuptools import setup, Extension
+from Cython.Build import cythonize
 
+extensions = [Extension("mangoes.utils.counting", ["mangoes/utils/counting.pyx"])]
 
 setup(
     name='mangoes',
     version='2.0.1',
     python_requires='>=3.6',
     packages=['mangoes', 'mangoes.evaluation', 'mangoes.utils', 'mangoes.modeling'],
-    ext_modules=[Extension("mangoes.utils.counting", ["mangoes/utils/counting.pyx"])],
+    ext_modules= cythonize(extensions),
     package_data={
         'mangoes': ['resources/en/similarity/*.txt', 'resources/fr/similarity/*.txt', 'resources/en/analogy/*/*/*.txt',
                     'resources/en/outlier_detection/*/*.txt', 'resources/en/outlier_detection/*.zip'],

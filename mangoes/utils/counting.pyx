@@ -45,8 +45,9 @@ def _counter_to_csr(counter, (int, int) shape):
     cdef Py_ssize_t counter_len = len(counter)
     cdef int i
 
-    data = np.empty(shape=(counter_len, 3), dtype=np.intc)
-    cdef int[:, ::1] data_view = data
+    # TODO(nami): change the type to float?
+    data = np.empty(shape=(counter_len, 3), dtype=np.float64)
+    cdef double[:, ::1] data_view = data
     for i, ((word_index, context_index), count) in enumerate(counter.items()):
         data_view[i, 0] = word_index
         data_view[i, 1] = context_index

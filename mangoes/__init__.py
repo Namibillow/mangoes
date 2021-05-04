@@ -13,9 +13,6 @@ Mangoes can be used to :
 * Fine-tune a BERT language model
 
 """
-# Required for importing mangoes.utils.counting
-import pyximport
-pyximport.install()
 
 from mangoes.corpus import Corpus
 from mangoes.dataset import Dataset

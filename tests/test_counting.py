@@ -394,7 +394,6 @@ def test_count_cooccurrence_dynamic_window(dummy_raw_corpus):
     assert any(result.matrix.toarray().flatten() < np.array(expected_count_alt).flatten())
 
 
-# TODO(nami) fix.
 @pytest.mark.integration
 def test_count_cooccurrence_dependency_based_context():
     conll_string = ["1	australian	_	_	JJ	_	2	amod	_	_",
@@ -595,8 +594,6 @@ def test_count_cooccurrence_dependency_based_context_deprel():
             "discovers/case_with",
             "scientist/case_with+nsubj"} == set(result.contexts_words)
 
-# TODO(nami) fix cython. 
-@pytest.mark.skip(reason="Weight doesn't work yet")
 @pytest.mark.integration
 def test_count_cooccurrence_dependency_based_context_weight():
     conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
@@ -628,7 +625,6 @@ def test_count_cooccurrence_dependency_based_context_weight():
 
     np.testing.assert_array_equal(expected_count, result.matrix.A)
 
-@pytest.mark.skip(reason="Weight doesn't work yet")
 @pytest.mark.integration
 def test_count_cooccurrence_dependency_based_context_weight_scheme():
     conll_string = ["1	australian	australian	ADJ	JJ	_	2	amod	_	_",
