@@ -1,0 +1,66 @@
+{
+    "name" : "dependency_based_context",
+    "saved_corpus_path" : "output/2021-05-02-17-41/.corpus",
+    "saved_target_vocab_path" : "output/2021-05-07-16-01/vocabulary_1092501_target_words",
+    "saved_context_vocab_path" : "output/2021-05-07-16-01/vocabulary_3647079_context_words",
+    "corpus_path" : "../../wiki_data/en_split_out", 
+    "parameters" : 
+        {
+            "corpus": 
+                {   
+                    "reader" : "CONLLU",
+                    "lower": true,
+                    "ignore_punctuation" : false,
+                    "corpus_nb_sentences" : 52538390, 
+                    "language": "English"
+                },
+            "target_vocabulary" :
+                {
+                    "attributes" : ["POS", "lemma"],
+                    "filters" : {
+                        "stop_words" : "lemma", 
+                        "filter_by_POS" : {
+                            "attribute" : "POS",
+                            "keep" : ["NN", "NNS", "JJ","JJR", "JJS", "VB", "VBD", "VBG", "VBN", "VBP", "VBZ"]
+                        },
+                        "remove_most_frequent": 100, 
+                        "remove_least_frequent" : 2
+                    }
+                },
+            "context_vocabulary" : 
+                {
+                    "attributes" : ["POS", "lemma"],
+                    "filters" : {
+                        "stop_words" : "lemma", 
+                        "filter_by_POS" : {
+                            "attribute" : "POS",
+                            "keep" : ["NN", "NNS", "JJ","JJR", "JJS", "VB", "VBD", "VBG", "VBN", "VBP", "VBZ"]
+                        }
+                    }
+                },
+            "dependency_context" : 
+                {
+                    "collapse" : true,
+                    "labels" : false,
+                    "depth" : 1, 
+                    "directed" : false, 
+                    "deprel_keep" : ["nsubj", "amod"]
+                },
+            "embedding" :
+                {
+                    "weighting": {
+                        "type" : "PPMI",
+                        "parameters" : {
+                            "alpha" : 1
+                        }
+                    },
+                    "reduction" : {
+                        "type" : "SVD",
+                        "parameters" :{
+                            "dimensions" : 300
+                        }  
+                    } 
+                }
+            
+        }
+}
