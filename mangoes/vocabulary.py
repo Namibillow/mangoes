@@ -231,7 +231,7 @@ class Vocabulary:
                     bigram = line.split(' ')
                     return Bigram(Token(*bigram[0].split('/')), Token(*bigram[1].split('/')))
                 else:
-                    return Token(*line.split('/'))  # simple token
+                    return Token(*line.split('/', 1))  # simple token
             return parse_tokens
 
         with open(os.path.join(path, name + '.txt'), "r", encoding=ENCODING) as f:
