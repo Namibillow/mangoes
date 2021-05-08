@@ -46,7 +46,7 @@ def get_filters(config_filters):
         elif k == "remove_elements":
             filters.append(mangoes.corpus.remove_elements()) 
         elif k ==  "filter_by_POS":
-            filters.append(mangoes.corpus.filter_by_attribute(v["attribute"], v["keep"]))
+            filters.append(mangoes.corpus.filter_by_attribute(v["attribute"], set(v["keep"])))
     return filters 
 
 def read_json(fname):
@@ -78,7 +78,7 @@ def get_corpus(config):
         lower = corpus_config.get("lower", False)
         digit = corpus_config.get("digit", False) 
         ignore_punctuation = corpus_config.get("ignore_punctuation", False)
-        nb_sentences = corpus_config.get("coarsub -q production -l walltime=4 -Iorpus_nb_sentences", None) 
+        nb_sentences = corpus_config.get("nb_sentences", None) 
         lazy= corpus_config.get("lazy", False) 
 
         corpus = mangoes.Corpus(content=corpus_path, 
@@ -163,6 +163,7 @@ def get_dep_context(config, context_vocabulary):
     entities = context_config.get("attribute", None)
     
     dep_config = config["parameters"]["dependency_context"]
+    deprel_keep= set(dep_config["deprel_keep"]) if "deprel_keep" in dep_config else None 
 
     return mangoes.context.DependencyBasedContext(
                                                 vocabulary=context_vocabulary,
@@ -172,7 +173,7 @@ def get_dep_context(config, context_vocabulary):
                                                 labels = dep_config.get("labels", False),
                                                 depth = dep_config.get("depth", 1),
                                                 directed = dep_config.get("directed", False), 
-                                                deprel_keep = dep_config.get("deprel_keep", None),
+                                                deprel_keep =deprel_keep,
                                                 weight = dep_config.get("weight", False),
                                                 weight_scheme = dep_config.get("weight_scheme", None)
                                                 )

@@ -249,7 +249,7 @@ class DependencyBasedContext(Context):
     directed: bool 
         Whether or not the dependency relation should be considered as directed or undirected. Default is False.
 
-    deprel_keep: tuple of valid dependency relation types existing in specified dependencies 
+    deprel_keep: set of valid dependency relation types existing in specified dependencies 
         Specify which dependency relation to count for creating a co-occurrence matrix. Default is None which means to include all 
         dependency relations.
 
