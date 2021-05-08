@@ -66,7 +66,7 @@ def get_corpus(config):
         logging.info(f"Loading corpus metadata from '{config['saved_corpus_path']}'...")
         corpus = mangoes.Corpus.load_from_metadata(config["saved_corpus_path"])
 
-    except FileNotFoundError or KeyError:
+    except (FileNotFoundError, KeyError):
         corpus_path = config["corpus_path"]
         logging.info(f"Corpus path: {corpus_path}")
         logging.info("Counting corpus words and sentences ...")
@@ -74,7 +74,7 @@ def get_corpus(config):
         corpus_config = config["parameters"]["corpus"]
         name = corpus_config.get('name', None)
         language = corpus_config.get("language", None) 
-        reader = READER[corpus_config("reader", "TEXT")] 
+        reader = READER[corpus_config.get("reader", "TEXT")] 
         lower = corpus_config.get("lower", False)
         digit = corpus_config.get("digit", False) 
         ignore_punctuation = corpus_config.get("ignore_punctuation", False)
@@ -98,6 +98,11 @@ def get_corpus(config):
     logging.info("Done. Corpus has {} sentences, {} different words, {} tokens".format(corpus.nb_sentences,
                                                                                     len(corpus.words_count),
                                                                                     corpus.size))
+
+    # NOTE(nami) Testing printing 
+    logging.info("Describe corpus: ")
+    corpus.describe()
+
     return corpus
 
 def get_vocabulary_util(corpus, vocabu_config, name):
@@ -115,7 +120,7 @@ def get_vocabulary_util(corpus, vocabu_config, name):
     logging.info(f"Total {name} words: {len(vocabulary)}")
     if "POS" in vocabulary.entity:
         POS_count = Counter(getattr(token, "POS") for token in vocabulary._index_word)
-        logging.info(f"Unique count of POS for {name} Words: {len(vocabulary)}")
+        logging.info(f"Unique count of POS for {name} Words:")
         logging.info(PrettyLog(POS_count))
     
     return vocabulary
@@ -206,11 +211,10 @@ def get_embedding_params(config):
         if reduction_dict:
             if reduction_dict["type"] == "SVD":
                 dimensions = reduction_dict["parameters"].get("dimension", 300)
-                weight= reduction_dict["parameters"].get("weight", 1), 
+                weight= reduction_dict["parameters"].get("weight", 1)
                 add_context_vectors=reduction_dict["parameters"].get("add_context_vectors", False)
-                symmetric= reduction_dict["parameters"].get("symmetric", False), 
-
-                reduction = mangoes.reduction.SVD(dimensions=dimensions,weight=weight, add_context_vectors=add_context_vectors, symmetric=symmetric)
+                symmetric= reduction_dict["parameters"].get("symmetric", False)
+                reduction = mangoes.reduction.SVD(dimensions=dimensions, weight=weight, add_context_vectors=add_context_vectors, symmetric=symmetric)
             elif reduction_dict["type"] == "PCA":
                 dimensions = reduction_dict["parameters"].get("dimension", 300)
                 reduction = mangoes.reduction.SVD(dimensions=dimensions)
