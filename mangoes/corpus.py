@@ -189,22 +189,22 @@ class Corpus:
 
     def describe(self):
         """Print properties of this corpus"""
-        print("Name:", self.name)
+        logging.info(f"Name:{self.name}")
         if self.language:
-            print("Language:", self.language)
+            logging.info(f"Language:{self.language}")
         else:
-            print("Language:", "unknown")
-        print("Reader:", self._reader_class)
-        print("Parameters:")
+            logging.info("Language: unknown")
+        logging.info(f"Reader: {self._reader_class}")
+        logging.info("Parameters:")
         for param in ["lower", "digit", "ignore_punctuation"]:
-            print("\t-", param, ":", self.params[param])
+            logging.info(f"\t- {param}: {self.params[param]}")
         if self._size:
-            print("Size:")
-            print("\t- sentences:", self.nb_sentences)
-            print("\t- total number of tokens:", self.size)
-            print("\t- number of unique tokens:", len(self.words_count))
+            logging.info("Size:")
+            logging.info(f"\t- sentences: {self.nb_sentences}")
+            logging.info(f"\t- total number of tokens: {self.size}")
+            logging.info(f"\t- number of unique tokens: {len(self.words_count)}")
         else:
-            print("The corpus has not been initialized yet.")
+            logging.info("The corpus has not been initialized yet.")
 
     def peek(self, size=5):
         """Print the first sentences of the corpus

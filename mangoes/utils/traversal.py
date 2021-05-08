@@ -2,6 +2,19 @@
 """
 
 def find_parents(count, depth, idx, label, sentence_tree, parents, visited):
+    """Find all the connecting element from given starting element.
+
+    Parameters
+    -----------
+    count: int
+    depth: int
+    idx: int
+        index of word in a sentence.
+    label: str
+    sentence_tree: list
+    parents: set
+    visited: set
+    """
 
     if count > depth:
         return 
@@ -19,7 +32,19 @@ def find_parents(count, depth, idx, label, sentence_tree, parents, visited):
                     find_parents(count+1, depth, token, new_label, sentence_tree, parents, visited)
         
 
-def dfs(remain, node, label,  visited, new_children, sentence_tree):
+def dfs(remain, node, label, visited, new_children, sentence_tree):
+    """Find path that connects current element up to depth-far.
+
+    Parameters
+    -----------
+    remain: int 
+    node: int 
+        index of word in a sentence.
+    label: str 
+    visited: set 
+    new_children: set 
+    sentence_tree: list(set)
+    """
     if remain < 0:
         return 
 
