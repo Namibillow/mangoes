@@ -163,7 +163,7 @@ def get_dep_context(config, context_vocabulary):
     entities = context_config.get("attribute", None)
     
     dep_config = config["parameters"]["dependency_context"]
-    deprel_keep= set(dep_config["deprel_keep"]) if "deprel_keep" in dep_config else None 
+    deprel_keep= tuple(dep_config["deprel_keep"]) if "deprel_keep" in dep_config else None 
 
     return mangoes.context.DependencyBasedContext(
                                                 vocabulary=context_vocabulary,
