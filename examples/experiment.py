@@ -160,7 +160,7 @@ def get_dep_context(config, context_vocabulary):
     logging.info("Building dependency-based-context....")
 
     context_config = config["parameters"]["context_vocabulary"]
-    entities = context_config.get("attribute", None)
+    entities = context_config.get("attributes", None)
     
     dep_config = config["parameters"]["dependency_context"]
     deprel_keep= tuple(dep_config["deprel_keep"]) if "deprel_keep" in dep_config else None 
@@ -252,9 +252,8 @@ def main(args):
 
     coocc_count = mangoes.counting.count_cooccurrence(corpus,  
                                                 target_vocabulary, 
-                                                context=dependency_context,
+                                                context=dependency_context
                                                 )
-
 
     weighting, reduction = get_embedding_params(config)
 
