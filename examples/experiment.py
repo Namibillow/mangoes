@@ -1,3 +1,7 @@
+"""
+Perform embedding creation using parameters specified in json file and save it.
+"""
+
 import mangoes
 import nltk
 import os 
@@ -60,6 +64,7 @@ def read_json(fname):
 def get_corpus(config):
     """
         Load savd .corpus file if any else read corpus to Corpus class and save it.
+        Please specify correct path to saved .corpus with "saved_corpus_path" or path to corpus with "corpus_path" in json.
     """
 
     try:
@@ -98,8 +103,6 @@ def get_corpus(config):
     logging.info("Done. Corpus has {} sentences, {} different words, {} tokens".format(corpus.nb_sentences,
                                                                                     len(corpus.words_count),
                                                                                     corpus.size))
-
-    # NOTE(nami) Testing printing 
     logging.info("Describe corpus: ")
     corpus.describe()
 
@@ -128,6 +131,7 @@ def get_vocabulary_util(corpus, vocabu_config, name):
 def get_vocabulary(corpus, config):
     """
         Build and save target and context vocabularies.
+        Already vocabulary is saved, then provide its path to "saved_target_vocab_path"/"saved_context_vocab_path" in json.
     """
 
     if "saved_target_vocab_path" in config:
@@ -160,7 +164,7 @@ def get_dep_context(config, context_vocabulary):
     logging.info("Building dependency-based-context....")
 
     context_config = config["parameters"]["context_vocabulary"]
-    entities = context_config.get("attributes", None)
+    entities = context_config.get("attributes", "form")
     
     dep_config = config["parameters"]["dependency_context"]
     deprel_keep= tuple(dep_config["deprel_keep"]) if "deprel_keep" in dep_config else None 
