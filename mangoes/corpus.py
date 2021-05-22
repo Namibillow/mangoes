@@ -68,7 +68,7 @@ class Corpus:
 
     def __init__(self, content, name=None, language=None, reader=TEXT,
                  lower=False, digit=False, ignore_punctuation=False,
-                 nb_sentences=None, lazy=False):
+                 nb_sentences=None, lazy=False, max_len=100):
 
         self._logger = logging.getLogger("{}.{}".format(__name__, self.__class__.__name__))
 
@@ -81,12 +81,13 @@ class Corpus:
         self._bigrams_count = None
         self._size = None
         self._nb_sentences = nb_sentences
+        self._max_len = max_len
 
         if not name and isinstance(content, str) and os.path.exists(content):
             name = content
 
         self._params = {"lower": lower, "digit": digit, "ignore_punctuation": ignore_punctuation,
-                        "name": name, "language": language}
+                        "name": name, "language": language, "max_len" : max_len}
 
         if not lazy:
             self._count_words()
@@ -144,6 +145,10 @@ class Corpus:
     def params(self):
         """Parameters of the corpus"""
         return self._params
+
+    @property 
+    def max_len(self):
+        return self._max_len 
 
     @property
     def words_count(self):
@@ -293,7 +298,8 @@ class Corpus:
             self._words_count, self._nb_sentences = mangoes.utils.counting.count_words_raw(self, self._nb_sentences)
         else:
             self._words_count, self._nb_sentences = mangoes.utils.counting.count_words_annotated(self,
-                                                                                                 self._nb_sentences)
+                                                                                                 nb_sentences=self._nb_sentences,
+                                                                                                 max_len=self.max_len)
 
     @mangoes.utils.decorators.timer(display=_logger.info, label="counting occurrences of each bigram in corpus")
     def _count_bigrams(self):

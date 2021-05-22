@@ -116,20 +116,21 @@ def count_words_raw(sentences, nb_sentences=None):
     return collections.Counter(words_count), real_nb_sentences
 
 
-def count_words_annotated(sentences, nb_sentences=None):
+def count_words_annotated(sentences, nb_sentences=None, max_len=100):
     cdef int real_nb_sentences = 0
     cdef list sentence
     cdef dict words_count = {}
     cdef tuple token
 
     for sentence in ProgressBar(sentences, total=nb_sentences, desc="Counting words"):
-        for tok in sentence:
-            token = tuple((tok.form, tok.lemma, tok.POS))
-            try:
-                words_count[token] += 1
-            except KeyError:
-                words_count[token] = 1
-        real_nb_sentences += 1
+        if len(sentence) <= max_len:
+            for tok in sentence:
+                token = tuple((tok.form, tok.lemma, tok.POS))
+                try:
+                    words_count[token] += 1
+                except KeyError:
+                    words_count[token] = 1
+            real_nb_sentences += 1
 
     return collections.Counter({Token(k[0], k[1], k[2]):v for k,v in words_count.items()}), real_nb_sentences
 

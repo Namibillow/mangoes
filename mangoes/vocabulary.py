@@ -228,10 +228,12 @@ class Vocabulary:
                 """
                 line = line.strip()
                 if ' ' in line:
-                    bigram = line.split(' ')
-                    return Bigram(Token(*bigram[0].split('/')), Token(*bigram[1].split('/')))
-                else:
-                    return Token(*line.split('/', 1))  # simple token
+                    line = "".join(line.split())
+                # TODO(nami) Adopt bigram for annotated token.
+                #     bigram = line.split(' ')
+                #     return Bigram(Token(*bigram[0].split('/')), Token(*bigram[1].split('/')))
+                # else:
+                return Token(*line.split('/', 1))  # simple token
             return parse_tokens
 
         with open(os.path.join(path, name + '.txt'), "r", encoding=ENCODING) as f:

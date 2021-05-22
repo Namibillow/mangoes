@@ -4,6 +4,7 @@
 This module provides the main function count_cooccurrence to construct a CountBasedRepresentation.
 """
 from  collections import defaultdict, namedtuple
+import gc
 import logging
 import math
 import multiprocessing
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 @mangoes.utils.decorators.timer(display=logger.info)
 def count_cooccurrence(corpus, words,
                        context=mangoes.context.Window(),
-                       subsampling=False, nb_workers=None, batch=1000000):
+                       subsampling=False, nb_workers=None, batch=1000000, max_len=100):
     """Build a CountBasedRepresentation where rows are the words in `words`, counting co-occurrences from the `corpus`.
 
     Examples
@@ -64,7 +65,10 @@ def count_cooccurrence(corpus, words,
         context = mangoes.context.Window(context)
 
     if not nb_workers:
+        # nb_workers = int((multiprocessing.cpu_count() - 1)*0.5)
         nb_workers = multiprocessing.cpu_count() - 1
+
+    logging.info(f"nb_workers used: {nb_workers}/{multiprocessing.cpu_count()}")
 
     kwargs = {}
     if subsampling:
@@ -75,7 +79,7 @@ def count_cooccurrence(corpus, words,
 
     if nb_workers == 1:
         result = _count_context_cooccurrence(corpus.reader.sentences(),
-                                             context, words, context.vocabulary, **kwargs).__next__()
+                                             context, words, context.vocabulary, max_len, **kwargs).__next__()
         matrix, contexts_words = result
     else:
         data_parallel = mangoes.utils.multiproc.DataParallel(_count_context_cooccurrence,
@@ -84,7 +88,7 @@ def count_cooccurrence(corpus, words,
 
 
         matrix, contexts_words = data_parallel.run(corpus,
-                                                   *(context, words, context.vocabulary),
+                                                   *(context, words, context.vocabulary, max_len),
                                                    **kwargs)
 
     features = mangoes.Vocabulary(contexts_words)
@@ -96,7 +100,7 @@ def count_cooccurrence(corpus, words,
     return mangoes.CountBasedRepresentation(words, features, matrix, hyperparameters)
 
 
-def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_vocabulary,
+def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_vocabulary, max_len=100,
                                 nb_sentences=None, subsampler=None, batch=1000000):
     """Parallelizable function to count cooccurrence
 
@@ -146,8 +150,10 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
     with ProgressBar(total=nb_sentences) as progress_bar:
         while True:
             try:
-                for _ in range(batch):
+                for i in range(batch):
                     sentence = sentences.__next__()
+                    if len(sentence) > max_len:
+                        continue 
                     sentence = filter_bigrams_sentence(sentence)
                     if subsampler:
                         sentence = _subsample(sentence, subsampler)
@@ -212,6 +218,9 @@ def _count_context_cooccurrence(sentences, context, words_vocabulary, contexts_v
                                         else:
                                             counter[(word_id, contexts_vocabulary.index(context_word))]+=1
 
+                    if i % 5000 == 0:
+                        gc.collect()
+                        
                     progress_bar.update()
 
                 csr = mangoes.utils.counting._counter_to_csr(counter,
