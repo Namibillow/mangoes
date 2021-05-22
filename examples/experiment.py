@@ -85,6 +85,7 @@ def get_corpus(config):
         ignore_punctuation = corpus_config.get("ignore_punctuation", False)
         nb_sentences = corpus_config.get("nb_sentences", None) 
         lazy= corpus_config.get("lazy", False) 
+        max_len=config["parameters"].get("max_len", 100)
 
         corpus = mangoes.Corpus(content=corpus_path, 
                                 name=name,
@@ -94,7 +95,8 @@ def get_corpus(config):
                                 digit=digit,
                                 ignore_punctuation=ignore_punctuation,
                                 nb_sentences=nb_sentences, 
-                                lazy=lazy)
+                                lazy=lazy,
+                                max_len=max_len)
 
         corpus_metadata = os.path.join(config["output_path"], ".corpus")
         corpus.save_metadata(corpus_metadata)
@@ -108,15 +110,15 @@ def get_corpus(config):
 
     return corpus
 
-def get_vocabulary_util(corpus, vocabu_config, name):
+def get_vocabulary_util(corpus, vocab_config, name):
     """
         Helper function to build vocabullary from given corpus.
     """
 
     logging.info(f"Building {name} words...") 
 
-    attributes = tuple(vocabu_config["attributes"]) if "attributes" in vocabu_config else None 
-    filters = get_filters(vocabu_config["filters"]) if "filters" in vocabu_config else None 
+    attributes = tuple(vocab_config["attributes"]) if "attributes" in vocab_config else None 
+    filters = get_filters(vocab_config["filters"]) if "filters" in vocab_config else None 
 
     vocabulary = corpus.create_vocabulary(attributes=attributes, filters =filters)
 
@@ -134,21 +136,21 @@ def get_vocabulary(corpus, config):
         Already vocabulary is saved, then provide its path to "saved_target_vocab_path"/"saved_context_vocab_path" in json.
     """
 
-    if "saved_target_vocab_path" in config:
+    try:
         target_vocabulary = mangoes.Vocabulary.load(*(config["saved_target_vocab_path"].rsplit('/', 1)))
         logging.info("Loaded target vocabulary.")
 
-    else:
+    except (FileNotFoundError, KeyError):
         target_vocabulary = get_vocabulary_util(corpus, config["parameters"]["target_vocabulary"], "target")
         target_vocabulary_file_name = "vocabulary_{}_target_words".format(len(target_vocabulary))
         target_vocabulary.save(config["output_path"], name=target_vocabulary_file_name)
         logging.info("Load and saved target vocabulary")
 
-    if "saved_context_vocab_path" in config:
+    try:
         context_vocabulary = mangoes.Vocabulary.load(*(config["saved_context_vocab_path"].rsplit('/', 1)))
         logging.info("Loaded context vocabulary.")
 
-    else:
+    except (FileNotFoundError, KeyError):
         context_vocabulary = get_vocabulary_util(corpus, config["parameters"]["context_vocabulary"], "context")
         context_vocabulary_file_name = "vocabulary_{}_context_words".format(len(context_vocabulary))
         context_vocabulary.save(config["output_path"], name=context_vocabulary_file_name)
@@ -256,7 +258,8 @@ def main(args):
 
     coocc_count = mangoes.counting.count_cooccurrence(corpus,  
                                                 target_vocabulary, 
-                                                context=dependency_context
+                                                context=dependency_context,
+                                                max_len=config["parameters"].get("max_len", 100)
                                                 )
 
     weighting, reduction = get_embedding_params(config)
